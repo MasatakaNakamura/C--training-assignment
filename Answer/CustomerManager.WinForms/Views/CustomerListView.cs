@@ -1,5 +1,6 @@
 using CustomerManager.Core.Interfaces;
 using CustomerManager.Core.Models;
+using CustomerManager.Core.Constants;
 
 namespace CustomerManager.WinForms.Views
 {
@@ -39,7 +40,7 @@ namespace CustomerManager.WinForms.Views
             }
 
             dataGridViewCustomers.DataSource = customers.ToList();
-            labelStatus.Text = $"顧客数: {customers.Count()}件";
+            labelStatus.Text = string.Format(MessageConstants.Status.CustomerCount, customers.Count());
         }
 
         /// <summary>
@@ -54,7 +55,7 @@ namespace CustomerManager.WinForms.Views
                 return;
             }
 
-            MessageBox.Show(message, "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(message, MessageConstants.DialogTitle.Error, MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
         /// <summary>
@@ -69,7 +70,7 @@ namespace CustomerManager.WinForms.Views
                 return;
             }
 
-            MessageBox.Show(message, "完了", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(message, MessageConstants.DialogTitle.Success, MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         /// <summary>
@@ -80,8 +81,8 @@ namespace CustomerManager.WinForms.Views
         public bool ConfirmDelete(string customerName)
         {
             var result = MessageBox.Show(
-                $"顧客「{customerName}」を削除してもよろしいですか？\nこの操作は取り消せません。",
-                "削除確認",
+                string.Format(MessageConstants.Confirmation.DeleteCustomer, customerName),
+                MessageConstants.DialogTitle.DeleteConfirmation,
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning);
 
@@ -123,7 +124,7 @@ namespace CustomerManager.WinForms.Views
             
             if (isLoading)
             {
-                labelStatus.Text = "読み込み中...";
+                labelStatus.Text = MessageConstants.Status.Loading;
             }
         }
 

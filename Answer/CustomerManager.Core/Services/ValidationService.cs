@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using CustomerManager.Core.Models;
+using CustomerManager.Core.Constants;
 
 namespace CustomerManager.Core.Services
 {
@@ -38,7 +39,7 @@ namespace CustomerManager.Core.Services
                     if (validationResult.MemberNames.Any())
                     {
                         var fieldName = validationResult.MemberNames.First();
-                        result.Errors[fieldName] = validationResult.ErrorMessage ?? "入力エラーがあります";
+                        result.Errors[fieldName] = validationResult.ErrorMessage ?? MessageConstants.Validation.InputError;
                     }
                 }
             }
@@ -63,7 +64,7 @@ namespace CustomerManager.Core.Services
             // 数字、ハイフン、括弧、スペースのみ許可する簡易チェック
             if (!System.Text.RegularExpressions.Regex.IsMatch(phoneNumber, @"^[\d\-\(\)\s]+$"))
             {
-                result.Errors["PhoneNumber"] = "電話番号は数字、ハイフン、括弧、スペースのみ使用できます";
+                result.Errors[FieldConstants.Customer.PhoneNumber] = MessageConstants.Validation.PhoneNumberFormat;
             }
         }
     }

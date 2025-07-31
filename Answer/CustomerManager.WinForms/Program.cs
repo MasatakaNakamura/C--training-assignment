@@ -1,6 +1,7 @@
 using CustomerManager.Data.DataAccess;
 using CustomerManager.WinForms.Presenters;
 using CustomerManager.WinForms.Views;
+using CustomerManager.Core.Constants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
@@ -20,6 +21,9 @@ namespace CustomerManager.WinForms
         {
             ApplicationConfiguration.Initialize();
 
+            // グローバル例外ハンドラを設定
+            SetupGlobalExceptionHandlers();
+
             try
             {
                 // 設定ファイルを読み込み
@@ -30,8 +34,8 @@ namespace CustomerManager.WinForms
                 if (string.IsNullOrEmpty(connectionString))
                 {
                     MessageBox.Show(
-                        "データベース接続文字列が設定されていません。\nappsettings.json を確認してください。",
-                        "設定エラー",
+                        MessageConstants.Configuration.ConnectionStringMissing,
+                        MessageConstants.DialogTitle.ConfigurationError,
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Error);
                     return;
@@ -49,8 +53,8 @@ namespace CustomerManager.WinForms
                 var customerRepository = new CustomerRepository(dbContext);
 
                 // メインフォームとPresenterの作成
-                var mainForm = new CustomerListView();
-                var presenter = new CustomerListPresenter(mainForm, customerRepository);
+                using var mainForm = new CustomerListView();
+                using var presenter = new CustomerListPresenter(mainForm, customerRepository);
 
                 // アプリケーション実行
                 await presenter.InitializeAsync();
@@ -59,8 +63,8 @@ namespace CustomerManager.WinForms
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    $"アプリケーションの起動中にエラーが発生しました。\n\n{ex.Message}",
-                    "起動エラー",
+                    string.Format(MessageConstants.Configuration.StartupError, ex.Message),
+                    MessageConstants.DialogTitle.StartupError,
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
             }
@@ -92,14 +96,90 @@ namespace CustomerManager.WinForms
             }
             catch (Exception ex)
             {
-                var message = "データベースに接続できませんでした。以下を確認してください：\n\n" +
-                             "1. MySQLサーバーが起動しているか\n" +
-                             "2. 接続文字列が正しいか\n" +
-                             "3. データベースとテーブルが作成されているか\n\n" +
-                             $"詳細エラー: {ex.Message}";
+                var message = string.Format(MessageConstants.Database.ConnectionFailed, ex.Message);
 
-                MessageBox.Show(message, "データベース接続エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(message, MessageConstants.DialogTitle.DatabaseConnectionError, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// グローバル例外ハンドラを設定
+        /// 未捕捉例外の一元管理
+        /// </summary>
+        private static void SetupGlobalExceptionHandlers()
+        {
+            // UIスレッドでの未捕捉例外をハンドル
+            Application.ThreadException += Application_ThreadException;
+
+            // セカンダリスレッドでの未捕捉例外をハンドル
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+        }
+
+        /// <summary>
+        /// UIスレッドでの未捕捉例外ハンドラ
+        /// </summary>
+        private static void Application_ThreadException(object sender, System.Threading.ThreadExceptionEventArgs e)
+        {
+            LogException(e.Exception, "UIスレッド未捕捉例外");
+            
+            var message = $"予期しないエラーが発生しました。\n\n" +
+                         $"エラー: {e.Exception.Message}\n\n" +
+                         $"アプリケーションを続行しますか？";
+
+            var result = MessageBox.Show(
+                message,
+                MessageConstants.DialogTitle.Error,
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Error);
+
+            if (result == DialogResult.No)
+            {
+                Application.Exit();
+            }
+        }
+
+        /// <summary>
+        /// セカンダリスレッドでの未捕捉例外ハンドラ
+        /// </summary>
+        private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            if (e.ExceptionObject is Exception ex)
+            {
+                LogException(ex, "アプリケーションドメイン未捕捉例外");
+                
+                MessageBox.Show(
+                    $"致命的なエラーが発生しました。\nアプリケーションを終了します。\n\nエラー: {ex.Message}",
+                    MessageConstants.DialogTitle.Error,
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// 例外をログに記録
+        /// TODO: 実際のプロダクションでは適切なロギングライブラリを使用
+        /// </summary>
+        private static void LogException(Exception exception, string context)
+        {
+            try
+            {
+                var logMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {context}\n" +
+                               $"Exception: {exception.GetType().Name}\n" +
+                               $"Message: {exception.Message}\n" +
+                               $"StackTrace: {exception.StackTrace}\n" +
+                               $"----------------------------------------\n";
+
+                // コンソールに出力（開発時のデバッグ用）
+                Console.WriteLine(logMessage);
+
+                // 実際のプロダクションでは、ファイルやデータベースにログを記録
+                // File.AppendAllTextAsync("error.log", logMessage);
+            }
+            catch
+            {
+                // ログ記録でエラーが発生した場合は何もしない
+                // 無限ループを防ぐため
             }
         }
     }

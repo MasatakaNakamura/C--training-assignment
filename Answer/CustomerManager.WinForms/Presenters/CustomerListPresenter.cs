@@ -1,5 +1,6 @@
 using CustomerManager.Core.Interfaces;
 using CustomerManager.Core.Models;
+using CustomerManager.Core.Constants;
 
 namespace CustomerManager.WinForms.Presenters
 {
@@ -8,10 +9,11 @@ namespace CustomerManager.WinForms.Presenters
     /// ViewとModelの仲介役
     /// MVPパターンのP（Presenter）部分
     /// </summary>
-    public class CustomerListPresenter
+    public class CustomerListPresenter : IDisposable
     {
         private readonly ICustomerListView _view;
         private readonly ICustomerRepository _repository;
+        private bool _disposed = false;
 
         public CustomerListPresenter(ICustomerListView view, ICustomerRepository repository)
         {
@@ -59,7 +61,7 @@ namespace CustomerManager.WinForms.Presenters
             var selectedCustomer = _view.GetSelectedCustomer();
             if (selectedCustomer == null)
             {
-                _view.ShowError("編集する顧客を選択してください。");
+                _view.ShowError(MessageConstants.Validation.SelectCustomerForEdit);
                 return;
             }
 
@@ -74,7 +76,7 @@ namespace CustomerManager.WinForms.Presenters
             var selectedCustomer = _view.GetSelectedCustomer();
             if (selectedCustomer == null)
             {
-                _view.ShowError("削除する顧客を選択してください。");
+                _view.ShowError(MessageConstants.Validation.SelectCustomerForDelete);
                 return;
             }
 
@@ -108,7 +110,7 @@ namespace CustomerManager.WinForms.Presenters
             }
             catch (Exception ex)
             {
-                _view.ShowError("顧客データの読み込みに失敗しました。\nデータベース接続を確認してください。");
+                _view.ShowError(MessageConstants.Database.LoadFailed);
                 // TODO: ログ出力
                 Console.WriteLine($"Error loading customers: {ex}");
             }
@@ -131,17 +133,17 @@ namespace CustomerManager.WinForms.Presenters
                 
                 if (success)
                 {
-                    _view.ShowSuccess("顧客を削除しました。");
+                    _view.ShowSuccess(MessageConstants.Success.CustomerDeleted);
                     await LoadCustomersAsync(); // 一覧を再読み込み
                 }
                 else
                 {
-                    _view.ShowError("顧客の削除に失敗しました。");
+                    _view.ShowError(MessageConstants.Database.DeleteFailed);
                 }
             }
             catch (Exception ex)
             {
-                _view.ShowError("顧客の削除中にエラーが発生しました。");
+                _view.ShowError(MessageConstants.Database.DeleteFailed);
                 // TODO: ログ出力
                 Console.WriteLine($"Error deleting customer: {ex}");
             }
@@ -158,8 +160,8 @@ namespace CustomerManager.WinForms.Presenters
         private void ShowCustomerEditDialog(Customer? customer)
         {
             // 顧客編集フォームを作成し、モーダルで表示
-            var editForm = new Views.CustomerEditView();
-            var editPresenter = new CustomerEditPresenter(editForm, _repository);
+            using var editForm = new Views.CustomerEditView();
+            using var editPresenter = new CustomerEditPresenter(editForm, _repository);
 
             // 編集モードの設定
             if (customer != null)
@@ -181,8 +183,45 @@ namespace CustomerManager.WinForms.Presenters
                 _ = LoadCustomersAsync(); // 非同期で一覧を更新（fire and forget）
             }
 
-            // リソースのクリーンアップ
-            editForm.Dispose();
+            // usingによりリソースは自動的にクリーンアップされる
         }
+
+        #region IDisposable Implementation
+
+        /// <summary>
+        /// リソースを解放
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// リソースを解放（継承可能版）
+        /// </summary>
+        /// <param name="disposing">マネージドリソースを解放するかどうか</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Viewのイベント購読を解除
+                    if (_view != null)
+                    {
+                        _view.LoadRequested -= OnLoadRequested;
+                        _view.AddNewRequested -= OnAddNewRequested;
+                        _view.EditRequested -= OnEditRequested;
+                        _view.DeleteRequested -= OnDeleteRequested;
+                        _view.RefreshRequested -= OnRefreshRequested;
+                    }
+                }
+
+                _disposed = true;
+            }
+        }
+
+        #endregion
     }
 }

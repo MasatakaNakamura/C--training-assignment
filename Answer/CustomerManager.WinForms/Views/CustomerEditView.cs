@@ -1,5 +1,6 @@
 using CustomerManager.Core.Interfaces;
 using CustomerManager.Core.Models;
+using CustomerManager.Core.Constants;
 
 namespace CustomerManager.WinForms.Views
 {
@@ -101,7 +102,7 @@ namespace CustomerManager.WinForms.Views
                 return;
             }
 
-            MessageBox.Show(message, "完了", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(message, MessageConstants.DialogTitle.Success, MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         /// <summary>
@@ -119,19 +120,19 @@ namespace CustomerManager.WinForms.Views
 
             switch (fieldName)
             {
-                case "Name":
+                case FieldConstants.Customer.Name:
                     labelNameError.Text = errorMessage;
                     labelNameError.Visible = true;
                     break;
-                case "Kana":
+                case FieldConstants.Customer.Kana:
                     labelKanaError.Text = errorMessage;
                     labelKanaError.Visible = true;
                     break;
-                case "PhoneNumber":
+                case FieldConstants.Customer.PhoneNumber:
                     labelPhoneNumberError.Text = errorMessage;
                     labelPhoneNumberError.Visible = true;
                     break;
-                case "Email":
+                case FieldConstants.Customer.Email:
                     labelEmailError.Text = errorMessage;
                     labelEmailError.Visible = true;
                     break;

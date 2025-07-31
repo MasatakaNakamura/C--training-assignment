@@ -64,9 +64,21 @@ namespace CustomerManager.Data.DataAccess
             if (customer == null)
                 throw new ArgumentNullException(nameof(customer));
 
-            _context.Customers.Update(customer);
+            // 既存のエンティティを取得
+            var existingCustomer = await _context.Customers.FindAsync(customer.Id);
+            if (existingCustomer == null)
+                throw new InvalidOperationException($"ID {customer.Id} の顧客が見つかりません。");
+
+            // 変更があったプロパティのみを更新
+            existingCustomer.Name = customer.Name;
+            existingCustomer.Kana = customer.Kana;
+            existingCustomer.PhoneNumber = customer.PhoneNumber;
+            existingCustomer.Email = customer.Email;
+            // CreatedAtは更新しない（作成日時は不変）
+            // UpdatedAtは自動で設定される
+
             await _context.SaveChangesAsync();
-            return customer;
+            return existingCustomer;
         }
 
         /// <summary>

@@ -1,6 +1,7 @@
 using CustomerManager.Core.Interfaces;
 using CustomerManager.Core.Models;
 using CustomerManager.Core.Services;
+using CustomerManager.Core.Constants;
 using Microsoft.EntityFrameworkCore;
 
 namespace CustomerManager.WinForms.Presenters
@@ -10,12 +11,13 @@ namespace CustomerManager.WinForms.Presenters
     /// ViewとModelの仲介役
     /// MVPパターンのP（Presenter）部分
     /// </summary>
-    public class CustomerEditPresenter
+    public class CustomerEditPresenter : IDisposable
     {
         private readonly ICustomerEditView _view;
         private readonly ICustomerRepository _repository;
         private readonly ValidationService _validationService;
         private Customer? _originalCustomer;
+        private bool _disposed = false;
 
         public CustomerEditPresenter(ICustomerEditView view, ICustomerRepository repository)
         {
@@ -84,7 +86,7 @@ namespace CustomerManager.WinForms.Presenters
                 bool emailExists = await _repository.EmailExistsAsync(customer.Email, excludeId);
                 if (emailExists)
                 {
-                    _view.ShowFieldError("Email", "このメールアドレスは既に使用されています。");
+                    _view.ShowFieldError(FieldConstants.Customer.Email, MessageConstants.Validation.EmailDuplicate);
                     return;
                 }
 
@@ -95,13 +97,13 @@ namespace CustomerManager.WinForms.Presenters
                     customer.Id = _originalCustomer.Id;
                     customer.CreatedAt = _originalCustomer.CreatedAt; // 作成日時は保持
                     await _repository.UpdateAsync(customer);
-                    _view.ShowSuccess("顧客情報を更新しました。");
+                    _view.ShowSuccess(MessageConstants.Success.CustomerUpdated);
                 }
                 else
                 {
                     // 新規登録処理
                     await _repository.AddAsync(customer);
-                    _view.ShowSuccess("顧客を登録しました。");
+                    _view.ShowSuccess(MessageConstants.Success.CustomerCreated);
                 }
 
                 // 成功時はダイアログを閉じる
@@ -111,11 +113,11 @@ namespace CustomerManager.WinForms.Presenters
             catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("Duplicate entry") == true)
             {
                 // MySQL固有のエラーハンドリング
-                _view.ShowFieldError("Email", "このメールアドレスは既に使用されています。");
+                _view.ShowFieldError(FieldConstants.Customer.Email, MessageConstants.Validation.EmailDuplicate);
             }
             catch (Exception ex)
             {
-                _view.ShowError("顧客情報の保存中にエラーが発生しました。\n再度お試しください。");
+                _view.ShowError(MessageConstants.Database.SaveFailed);
                 // TODO: ログ出力
                 Console.WriteLine($"Error saving customer: {ex}");
             }
@@ -124,5 +126,40 @@ namespace CustomerManager.WinForms.Presenters
                 _view.SetLoading(false);
             }
         }
+
+        #region IDisposable Implementation
+
+        /// <summary>
+        /// リソースを解放
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// リソースを解放（継承可能版）
+        /// </summary>
+        /// <param name="disposing">マネージドリソースを解放するかどうか</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Viewのイベント購読を解除
+                    if (_view != null)
+                    {
+                        _view.SaveRequested -= OnSaveRequested;
+                        _view.CancelRequested -= OnCancelRequested;
+                    }
+                }
+
+                _disposed = true;
+            }
+        }
+
+        #endregion
     }
 }
