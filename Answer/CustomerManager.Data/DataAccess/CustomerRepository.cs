@@ -12,10 +12,12 @@ namespace CustomerManager.Data.DataAccess
     public class CustomerRepository : ICustomerRepository
     {
         private readonly CustomerDbContext _context;
+        private readonly ILoggerService? _logger;
 
-        public CustomerRepository(CustomerDbContext context)
+        public CustomerRepository(CustomerDbContext context, ILoggerService? logger = null)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
+            _logger = logger;
         }
 
         /// <summary>
@@ -24,9 +26,12 @@ namespace CustomerManager.Data.DataAccess
         /// <returns>顧客リスト</returns>
         public async Task<IEnumerable<Customer>> GetAllAsync()
         {
+            const string methodName = nameof(GetAllAsync);
+            _logger?.LogMethodStart(methodName);
+            
             try
             {
-                Debug.WriteLine("Repository: データベースクエリ開始");
+                _logger?.LogDebug("データベースクエリ開始: 全顧客取得");
                 
                 // CancellationTokenSourceでタイムアウトを設定
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -36,18 +41,18 @@ namespace CustomerManager.Data.DataAccess
                     .ToListAsync(cts.Token)
                     .ConfigureAwait(false); // UIスレッドのコンテキストを回避
                 
-                Debug.WriteLine($"Repository: データベースクエリ完了 - {result.Count}件取得");
+                _logger?.LogDatabaseOperation("SELECT", "customers", result.Count);
+                _logger?.LogMethodEnd(methodName, $"{result.Count}件取得");
                 return result;
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
-                Debug.WriteLine("Repository: データベースクエリがタイムアウトしました。");
+                _logger?.LogError(ex, "データベースクエリタイムアウト: {MethodName}", methodName);
                 throw new TimeoutException("データベースへの接続がタイムアウトしました。");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Repository: データベースクエリエラー - {ex.Message}");
-                Debug.WriteLine($"Repository: エラー詳細 - {ex}");
+                _logger?.LogError(ex, "データベースクエリエラー: {MethodName}", methodName);
                 throw;
             }
         }
@@ -74,9 +79,24 @@ namespace CustomerManager.Data.DataAccess
             if (customer == null)
                 throw new ArgumentNullException(nameof(customer));
 
-            _context.Customers.Add(customer);
-            await _context.SaveChangesAsync().ConfigureAwait(false);
-            return customer;
+            const string methodName = nameof(AddAsync);
+            _logger?.LogMethodStart(methodName, customer.Name, customer.Email);
+            
+            try
+            {
+                _context.Customers.Add(customer);
+                await _context.SaveChangesAsync().ConfigureAwait(false);
+                
+                _logger?.LogDatabaseOperation("INSERT", "customers");
+                _logger?.LogInfo("顧客登録完了: ID={CustomerId}, Name={CustomerName}", customer.Id, customer.Name);
+                _logger?.LogMethodEnd(methodName, customer.Id);
+                return customer;
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "顧客登録エラー: {MethodName}, Name={CustomerName}", methodName, customer.Name);
+                throw;
+            }
         }
 
         /// <summary>

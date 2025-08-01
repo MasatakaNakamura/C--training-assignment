@@ -3,9 +3,12 @@ using CustomerManager.WinForms.Presenters;
 using CustomerManager.WinForms.Views;
 using CustomerManager.Core.Constants;
 using CustomerManager.Core.Interfaces;
+using CustomerManager.Core.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using NLog.Extensions.Logging;
 using System.Diagnostics;
 
 namespace CustomerManager.WinForms
@@ -55,6 +58,17 @@ namespace CustomerManager.WinForms
 
                 // DIコンテナの設定
                 var services = new ServiceCollection();
+                
+                // ログ設定
+                services.AddLogging(builder =>
+                {
+                    builder.ClearProviders();
+                    builder.SetMinimumLevel(LogLevel.Debug);
+                    builder.AddNLog();
+                });
+                
+                // カスタムログサービスの登録
+                services.AddSingleton<ILoggerService, LoggerService>();
                 
                 // DbContextの設定（各リクエストごとに新しいインスタンスを作成）
                 services.AddDbContext<CustomerDbContext>(options =>
@@ -254,22 +268,19 @@ namespace CustomerManager.WinForms
         {
             try
             {
-                var logMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {context}\n" +
-                               $"Exception: {exception.GetType().Name}\n" +
-                               $"Message: {exception.Message}\n" +
-                               $"StackTrace: {exception.StackTrace}\n" +
-                               $"----------------------------------------\n";
-
-                // コンソールに出力（開発時のデバッグ用）
-                Console.WriteLine(logMessage);
-
-                // 実際のプロダクションでは、ファイルやデータベースにログを記録
-                // File.AppendAllTextAsync("error.log", logMessage);
+                // NLogを使用したログ出力に変更
+                var logger = NLog.LogManager.GetCurrentClassLogger();
+                logger.Error(exception, "{Context}: {ExceptionType} - {Message}", 
+                    context, exception.GetType().Name, exception.Message);
             }
             catch
             {
                 // ログ記録でエラーが発生した場合は何もしない
                 // 無限ループを防ぐため
+                var fallbackMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {context}\n" +
+                                     $"Exception: {exception.GetType().Name}\n" +
+                                     $"Message: {exception.Message}\n";
+                Console.WriteLine(fallbackMessage);
             }
         }
     }

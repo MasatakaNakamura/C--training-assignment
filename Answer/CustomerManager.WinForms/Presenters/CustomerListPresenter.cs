@@ -14,11 +14,13 @@ namespace CustomerManager.WinForms.Presenters
     {
         private ICustomerListView? _view;
         private readonly ICustomerRepository _repository;
+        private readonly ILoggerService? _logger;
         private bool _disposed = false;
 
-        public CustomerListPresenter(ICustomerRepository repository)
+        public CustomerListPresenter(ICustomerRepository repository, ILoggerService? logger = null)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _logger = logger;
         }
 
         /// <summary>
@@ -27,6 +29,7 @@ namespace CustomerManager.WinForms.Presenters
         public void AttachView(ICustomerListView view)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
+            _logger?.LogInfo("CustomerListView アタッチ完了");
 
             // Viewのイベントを購読
             _view.LoadRequested += OnLoadRequested;
@@ -34,6 +37,8 @@ namespace CustomerManager.WinForms.Presenters
             _view.EditRequested += OnEditRequested;
             _view.DeleteRequested += OnDeleteRequested;
             _view.RefreshRequested += OnRefreshRequested;
+            
+            _logger?.LogDebug("CustomerListView イベント購読完了");
         }
 
         /// <summary>
