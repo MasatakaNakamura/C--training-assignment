@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using CustomerManager.Core.Interfaces;
 using CustomerManager.Core.Models;
+using System.Diagnostics;
 
 namespace CustomerManager.Data.DataAccess
 {
@@ -23,9 +24,30 @@ namespace CustomerManager.Data.DataAccess
         /// <returns>顧客リスト</returns>
         public async Task<IEnumerable<Customer>> GetAllAsync()
         {
-            return await _context.Customers
-                .OrderBy(c => c.Id)
-                .ToListAsync();
+            try
+            {
+                Debug.WriteLine("Repository: データベースクエリ開始");
+                
+                // タイムアウト付きでクエリ実行
+                using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                
+                var result = await _context.Customers
+                    .OrderBy(c => c.Id)
+                    .ToListAsync(cancellationTokenSource.Token);
+                
+                Debug.WriteLine($"Repository: データベースクエリ完了 - {result.Count}件取得");
+                return result;
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.WriteLine("Repository: データベースクエリタイムアウト");
+                throw new TimeoutException("データベースクエリがタイムアウトしました。MySQLサーバーの接続を確認してください。");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Repository: データベースクエリエラー - {ex.Message}");
+                throw;
+            }
         }
 
         /// <summary>
