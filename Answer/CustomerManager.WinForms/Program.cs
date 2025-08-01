@@ -43,7 +43,7 @@ namespace CustomerManager.WinForms
 
                 // DbContextの設定
                 var optionsBuilder = new DbContextOptionsBuilder<CustomerDbContext>();
-                optionsBuilder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+                optionsBuilder.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 21)));
 
                 // データベース接続テスト
                 await TestDatabaseConnection(optionsBuilder.Options);
