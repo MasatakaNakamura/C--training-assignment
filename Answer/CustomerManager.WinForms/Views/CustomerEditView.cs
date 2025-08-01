@@ -11,22 +11,22 @@ namespace CustomerManager.WinForms.Views
     /// </summary>
     public partial class CustomerEditView : Form, ICustomerEditView
     {
-        private TextBox textBoxName;
-        private TextBox textBoxKana;
-        private TextBox textBoxPhoneNumber;
-        private TextBox textBoxEmail;
-        private Button buttonSave;
-        private Button buttonCancel;
-        private Label labelName;
-        private Label labelKana;
-        private Label labelPhoneNumber;
-        private Label labelEmail;
-        private Label labelNameError;
-        private Label labelKanaError;
-        private Label labelPhoneNumberError;
-        private Label labelEmailError;
-        private Label labelGeneralError;
-        private ProgressBar progressBar;
+        private TextBox textBoxName = null!;
+        private TextBox textBoxKana = null!;
+        private TextBox textBoxPhoneNumber = null!;
+        private TextBox textBoxEmail = null!;
+        private Button buttonSave = null!;
+        private Button buttonCancel = null!;
+        private Label labelName = null!;
+        private Label labelKana = null!;
+        private Label labelPhoneNumber = null!;
+        private Label labelEmail = null!;
+        private Label labelNameError = null!;
+        private Label labelKanaError = null!;
+        private Label labelPhoneNumberError = null!;
+        private Label labelEmailError = null!;
+        private Label labelGeneralError = null!;
+        private ProgressBar progressBar = null!;
 
         public CustomerEditView()
         {

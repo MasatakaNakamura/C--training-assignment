@@ -11,13 +11,13 @@ namespace CustomerManager.WinForms.Views
     /// </summary>
     public partial class CustomerListView : Form, ICustomerListView
     {
-        private DataGridView dataGridViewCustomers;
-        private Button buttonAdd;
-        private Button buttonEdit;
-        private Button buttonDelete;
-        private Button buttonRefresh;
-        private Label labelStatus;
-        private ProgressBar progressBar;
+        private DataGridView dataGridViewCustomers = null!;
+        private Button buttonAdd = null!;
+        private Button buttonEdit = null!;
+        private Button buttonDelete = null!;
+        private Button buttonRefresh = null!;
+        private Label labelStatus = null!;
+        private ProgressBar progressBar = null!;
 
         public CustomerListView()
         {
