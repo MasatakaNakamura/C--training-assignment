@@ -90,6 +90,10 @@ namespace CustomerManager.WinForms
                 using var mainForm = new CustomerListView();
                 Debug.WriteLine("フォーム作成完了");
 
+                // Presenterのスコープをフォームのライフサイクルと合わせる
+                IServiceScope? presenterScope = null;
+                CustomerListPresenter? presenter = null;
+
                 // フォーム表示後にPresenterを初期化
                 mainForm.Load += async (sender, e) =>
                 {
@@ -97,9 +101,9 @@ namespace CustomerManager.WinForms
                     {
                         Debug.WriteLine("UIスレッドでPresenter初期化開始");
                         
-                        // 新しいスコープでPresenterを作成（DbContextも新しいインスタンス）
-                        using var scope = serviceProvider.CreateScope();
-                        var presenter = scope.ServiceProvider.GetRequiredService<CustomerListPresenter>();
+                        // フォームのライフサイクルに合わせてスコープを作成
+                        presenterScope = serviceProvider.CreateScope();
+                        presenter = presenterScope.ServiceProvider.GetRequiredService<CustomerListPresenter>();
                         presenter.AttachView(mainForm);
                         
                         await presenter.InitializeAsync();
@@ -109,6 +113,22 @@ namespace CustomerManager.WinForms
                     {
                         Debug.WriteLine($"Presenter初期化エラー: {ex.Message}");
                         MessageBox.Show($"データ読み込みエラー: {ex.Message}", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                };
+
+                // フォーム終了時にPresenterとスコープをクリーンアップ
+                mainForm.FormClosed += (sender, e) =>
+                {
+                    try
+                    {
+                        Debug.WriteLine("Presenterクリーンアップ開始");
+                        presenter?.Dispose();
+                        presenterScope?.Dispose();
+                        Debug.WriteLine("Presenterクリーンアップ完了");
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Presenterクリーンアップエラー: {ex.Message}");
                     }
                 };
                 
