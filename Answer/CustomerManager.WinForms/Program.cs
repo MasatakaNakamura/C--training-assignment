@@ -75,10 +75,20 @@ namespace CustomerManager.WinForms
                     options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 21))));
                 
                 // Repositoryの登録（Scoped: 各操作ごとに新しいインスタンス）
-                services.AddScoped<ICustomerRepository, CustomerRepository>();
+                services.AddScoped<ICustomerRepository>(provider =>
+                {
+                    var context = provider.GetRequiredService<CustomerDbContext>();
+                    var logger = provider.GetService<ILoggerService>();
+                    return new CustomerRepository(context, logger);
+                });
                 
                 // Presenterの登録（Transient: 毎回新しいインスタンス）
-                services.AddTransient<CustomerListPresenter>();
+                services.AddTransient<CustomerListPresenter>(provider =>
+                {
+                    var repository = provider.GetRequiredService<ICustomerRepository>();
+                    var logger = provider.GetService<ILoggerService>();
+                    return new CustomerListPresenter(repository, logger);
+                });
                 
                 var serviceProvider = services.BuildServiceProvider();
                 Debug.WriteLine("DIコンテナ設定完了");
