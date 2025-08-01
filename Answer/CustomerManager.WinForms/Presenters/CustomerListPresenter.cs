@@ -196,6 +196,7 @@ namespace CustomerManager.WinForms.Presenters
             {
                 editForm.IsEditMode = true;
                 editForm.SetCustomer(customer);
+                editPresenter.SetCustomer(customer); // Presenterにも顧客情報を設定
             }
             else
             {
