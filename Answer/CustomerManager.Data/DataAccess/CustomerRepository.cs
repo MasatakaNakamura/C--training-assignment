@@ -24,82 +24,32 @@ namespace CustomerManager.Data.DataAccess
         /// <returns>顧客リスト</returns>
         public async Task<IEnumerable<Customer>> GetAllAsync()
         {
-            Debug.WriteLine("Repository: ダミーデータを返却（一時的対応）");
-            
-            // 一時的にダミーデータを返却してフォーム表示を確認
-            
-            var dummyData = new List<Customer>
-            {
-                new Customer 
-                { 
-                    Id = 1, 
-                    Name = "田中太郎", 
-                    Kana = "タナカタロウ", 
-                    PhoneNumber = "03-1234-5678", 
-                    Email = "tanaka@example.com",
-                    CreatedAt = DateTime.Now.AddDays(-10),
-                    UpdatedAt = DateTime.Now.AddDays(-1)
-                },
-                new Customer 
-                { 
-                    Id = 2, 
-                    Name = "佐藤花子", 
-                    Kana = "サトウハナコ", 
-                    PhoneNumber = "090-1234-5678", 
-                    Email = "sato@example.com",
-                    CreatedAt = DateTime.Now.AddDays(-5),
-                    UpdatedAt = DateTime.Now
-                },
-                new Customer 
-                { 
-                    Id = 3, 
-                    Name = "鈴木次郎", 
-                    Kana = "スズキジロウ", 
-                    PhoneNumber = "080-9876-5432", 
-                    Email = "suzuki@example.com",
-                    CreatedAt = DateTime.Now.AddDays(-3),
-                    UpdatedAt = DateTime.Now
-                }
-            };
-            
-            Debug.WriteLine($"Repository: ダミーデータ返却完了 - {dummyData.Count}件");
-            return await Task.FromResult(dummyData);
-
-            // 実際のデータベース接続コードは後で修正
-            /*
             try
             {
                 Debug.WriteLine("Repository: データベースクエリ開始");
                 
-                // 短いタイムアウトでテスト
-                using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+                // CancellationTokenSourceでタイムアウトを設定
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
                 
-                // まず接続テスト
-                Debug.WriteLine("Repository: データベース接続テスト開始");
-                await _context.Database.CanConnectAsync(cancellationTokenSource.Token);
-                Debug.WriteLine("Repository: データベース接続テスト完了");
-                
-                // クエリ実行
-                Debug.WriteLine("Repository: クエリ実行開始");
                 var result = await _context.Customers
                     .OrderBy(c => c.Id)
-                    .ToListAsync(cancellationTokenSource.Token);
-                Debug.WriteLine("Repository: クエリ実行完了");
+                    .ToListAsync(cts.Token)
+                    .ConfigureAwait(false); // UIスレッドのコンテキストを回避
                 
                 Debug.WriteLine($"Repository: データベースクエリ完了 - {result.Count}件取得");
                 return result;
             }
             catch (OperationCanceledException)
             {
-                Debug.WriteLine("Repository: データベースクエリタイムアウト");
-                throw new TimeoutException("データベースクエリがタイムアウトしました。MySQLサーバーの接続を確認してください。");
+                Debug.WriteLine("Repository: データベースクエリがタイムアウトしました。");
+                throw new TimeoutException("データベースへの接続がタイムアウトしました。");
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Repository: データベースクエリエラー - {ex.Message}");
+                Debug.WriteLine($"Repository: エラー詳細 - {ex}");
                 throw;
             }
-            */
         }
 
         /// <summary>
@@ -110,7 +60,8 @@ namespace CustomerManager.Data.DataAccess
         public async Task<Customer?> GetByIdAsync(int id)
         {
             return await _context.Customers
-                .FirstOrDefaultAsync(c => c.Id == id);
+                .FirstOrDefaultAsync(c => c.Id == id)
+                .ConfigureAwait(false);
         }
 
         /// <summary>
@@ -124,7 +75,7 @@ namespace CustomerManager.Data.DataAccess
                 throw new ArgumentNullException(nameof(customer));
 
             _context.Customers.Add(customer);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync().ConfigureAwait(false);
             return customer;
         }
 
@@ -139,7 +90,7 @@ namespace CustomerManager.Data.DataAccess
                 throw new ArgumentNullException(nameof(customer));
 
             // 既存のエンティティを取得
-            var existingCustomer = await _context.Customers.FindAsync(customer.Id);
+            var existingCustomer = await _context.Customers.FindAsync(customer.Id).ConfigureAwait(false);
             if (existingCustomer == null)
                 throw new InvalidOperationException($"ID {customer.Id} の顧客が見つかりません。");
 
@@ -151,7 +102,7 @@ namespace CustomerManager.Data.DataAccess
             // CreatedAtは更新しない（作成日時は不変）
             // UpdatedAtは自動で設定される
 
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync().ConfigureAwait(false);
             return existingCustomer;
         }
 
