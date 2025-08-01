@@ -1,6 +1,7 @@
 using CustomerManager.Core.Interfaces;
 using CustomerManager.Core.Models;
 using CustomerManager.Core.Constants;
+using System.Diagnostics;
 
 namespace CustomerManager.WinForms.Presenters
 {
@@ -34,7 +35,9 @@ namespace CustomerManager.WinForms.Presenters
         /// </summary>
         public async Task InitializeAsync()
         {
+            Debug.WriteLine("Presenter: LoadCustomersAsync開始");
             await LoadCustomersAsync();
+            Debug.WriteLine("Presenter: LoadCustomersAsync完了");
         }
 
         /// <summary>
@@ -104,18 +107,24 @@ namespace CustomerManager.WinForms.Presenters
         {
             try
             {
+                Debug.WriteLine("Presenter: SetLoading(true)");
                 _view.SetLoading(true);
+                Debug.WriteLine("Presenter: Repository.GetAllAsync開始");
                 var customers = await _repository.GetAllAsync();
+                Debug.WriteLine($"Presenter: Repository.GetAllAsync完了 - {customers.Count()}件取得");
                 _view.ShowCustomers(customers);
+                Debug.WriteLine("Presenter: ShowCustomers完了");
             }
             catch (Exception ex)
             {
+                Debug.WriteLine($"Presenter: エラー発生 - {ex.Message}");
                 _view.ShowError(MessageConstants.Database.LoadFailed);
                 // TODO: ログ出力
                 Console.WriteLine($"Error loading customers: {ex}");
             }
             finally
             {
+                Debug.WriteLine("Presenter: SetLoading(false)");
                 _view.SetLoading(false);
             }
         }

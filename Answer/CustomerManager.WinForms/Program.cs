@@ -52,9 +52,19 @@ namespace CustomerManager.WinForms
                 optionsBuilder.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 21)));
 
                 Debug.WriteLine("データベース接続テスト開始");
-                // データベース接続テスト（一時的に無効化）
-                // await TestDatabaseConnection(optionsBuilder.Options);
-                Debug.WriteLine("データベース接続テスト完了（スキップ）");
+                // データベース接続テスト
+                try
+                {
+                    await TestDatabaseConnection(optionsBuilder.Options);
+                    Debug.WriteLine("データベース接続テスト完了");
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"データベース接続テスト失敗: {ex.Message}");
+                    MessageBox.Show($"データベース接続に失敗しました。\n\nエラー: {ex.Message}\n\nMySQLコンテナが起動していることを確認してください。",
+                        "データベース接続エラー", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    // 接続エラーがあってもアプリケーションは続行
+                }
 
                 // Repositoryの作成
                 var dbContext = new CustomerDbContext(optionsBuilder.Options);
