@@ -19,6 +19,7 @@ namespace CustomerManager.WinForms
         [STAThread]
         static async Task Main()
         {
+            Console.WriteLine("アプリケーション開始");
             ApplicationConfiguration.Initialize();
 
             // グローバル例外ハンドラを設定
@@ -26,13 +27,17 @@ namespace CustomerManager.WinForms
 
             try
             {
+                Console.WriteLine("設定ファイル読み込み開始");
                 // 設定ファイルを読み込み
                 var configuration = BuildConfiguration();
+                Console.WriteLine("設定ファイル読み込み完了");
                 
                 // データベース接続設定
                 var connectionString = configuration.GetConnectionString("DefaultConnection");
+                Console.WriteLine($"接続文字列: {connectionString}");
                 if (string.IsNullOrEmpty(connectionString))
                 {
+                    Console.WriteLine("接続文字列が見つかりません");
                     MessageBox.Show(
                         MessageConstants.Configuration.ConnectionStringMissing,
                         MessageConstants.DialogTitle.ConfigurationError,
@@ -45,20 +50,28 @@ namespace CustomerManager.WinForms
                 var optionsBuilder = new DbContextOptionsBuilder<CustomerDbContext>();
                 optionsBuilder.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 21)));
 
+                Console.WriteLine("データベース接続テスト開始");
                 // データベース接続テスト
                 await TestDatabaseConnection(optionsBuilder.Options);
+                Console.WriteLine("データベース接続テスト完了");
 
                 // Repositoryの作成
                 var dbContext = new CustomerDbContext(optionsBuilder.Options);
                 var customerRepository = new CustomerRepository(dbContext);
+                Console.WriteLine("Repository作成完了");
 
                 // メインフォームとPresenterの作成
+                Console.WriteLine("フォーム作成開始");
                 using var mainForm = new CustomerListView();
                 using var presenter = new CustomerListPresenter(mainForm, customerRepository);
+                Console.WriteLine("フォーム作成完了");
 
                 // アプリケーション実行
+                Console.WriteLine("Presenter初期化開始");
                 await presenter.InitializeAsync();
+                Console.WriteLine("アプリケーション実行開始");
                 Application.Run(mainForm);
+                Console.WriteLine("アプリケーション終了");
             }
             catch (Exception ex)
             {
