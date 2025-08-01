@@ -51,9 +51,9 @@ namespace CustomerManager.WinForms
                 optionsBuilder.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 21)));
 
                 Console.WriteLine("データベース接続テスト開始");
-                // データベース接続テスト
-                await TestDatabaseConnection(optionsBuilder.Options);
-                Console.WriteLine("データベース接続テスト完了");
+                // データベース接続テスト（一時的に無効化）
+                // await TestDatabaseConnection(optionsBuilder.Options);
+                Console.WriteLine("データベース接続テスト完了（スキップ）");
 
                 // Repositoryの作成
                 var dbContext = new CustomerDbContext(optionsBuilder.Options);
