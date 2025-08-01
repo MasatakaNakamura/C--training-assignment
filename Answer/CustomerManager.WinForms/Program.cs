@@ -2,8 +2,10 @@ using CustomerManager.Data.DataAccess;
 using CustomerManager.WinForms.Presenters;
 using CustomerManager.WinForms.Views;
 using CustomerManager.Core.Constants;
+using CustomerManager.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
 
 namespace CustomerManager.WinForms
@@ -51,15 +53,29 @@ namespace CustomerManager.WinForms
                     return;
                 }
 
-                // DbContextの設定
-                var optionsBuilder = new DbContextOptionsBuilder<CustomerDbContext>();
-                optionsBuilder.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 21)));
+                // DIコンテナの設定
+                var services = new ServiceCollection();
+                
+                // DbContextの設定（各リクエストごとに新しいインスタンスを作成）
+                services.AddDbContext<CustomerDbContext>(options =>
+                    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 21))));
+                
+                // Repositoryの登録（Scoped: 各操作ごとに新しいインスタンス）
+                services.AddScoped<ICustomerRepository, CustomerRepository>();
+                
+                // Presenterの登録（Transient: 毎回新しいインスタンス）
+                services.AddTransient<CustomerListPresenter>();
+                
+                var serviceProvider = services.BuildServiceProvider();
+                Debug.WriteLine("DIコンテナ設定完了");
 
                 Debug.WriteLine("データベース接続テスト開始");
                 // データベース接続テスト
                 try
                 {
-                    await TestDatabaseConnection(optionsBuilder.Options);
+                    using var scope = serviceProvider.CreateScope();
+                    var testContext = scope.ServiceProvider.GetRequiredService<CustomerDbContext>();
+                    await TestDatabaseConnection(testContext);
                     Debug.WriteLine("データベース接続テスト完了");
                 }
                 catch (Exception ex)
@@ -70,26 +86,22 @@ namespace CustomerManager.WinForms
                     // 接続エラーがあってもアプリケーションは続行
                 }
 
-                // Repositoryの作成
-                var dbContext = new CustomerDbContext(optionsBuilder.Options);
-                var customerRepository = new CustomerRepository(dbContext);
-                Debug.WriteLine("Repository作成完了");
-
-                // メインフォームとPresenterの作成
                 Debug.WriteLine("フォーム作成開始");
                 using var mainForm = new CustomerListView();
-                using var presenter = new CustomerListPresenter(mainForm, customerRepository);
                 Debug.WriteLine("フォーム作成完了");
 
-                // アプリケーション実行（UIスレッドで同期実行）
-                Debug.WriteLine("Presenter初期化開始");
-                
                 // フォーム表示後にPresenterを初期化
                 mainForm.Load += async (sender, e) =>
                 {
                     try
                     {
                         Debug.WriteLine("UIスレッドでPresenter初期化開始");
+                        
+                        // 新しいスコープでPresenterを作成（DbContextも新しいインスタンス）
+                        using var scope = serviceProvider.CreateScope();
+                        var presenter = scope.ServiceProvider.GetRequiredService<CustomerListPresenter>();
+                        presenter.AttachView(mainForm);
+                        
                         await presenter.InitializeAsync();
                         Debug.WriteLine("UIスレッドでPresenter初期化完了");
                     }
@@ -131,17 +143,23 @@ namespace CustomerManager.WinForms
         /// データベース接続をテスト
         /// </summary>
         /// <param name="options">データベースオプション</param>
-        private static async Task TestDatabaseConnection(DbContextOptions<CustomerDbContext> options)
+        private static async Task TestDatabaseConnection(CustomerDbContext context)
         {
             try
             {
-                using var context = new CustomerDbContext(options);
-                await context.Database.CanConnectAsync();
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                await context.Database.CanConnectAsync(cts.Token).ConfigureAwait(false);
+                Debug.WriteLine("データベース接続テスト成功");
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.WriteLine("データベース接続テストがタイムアウトしました。");
+                throw new TimeoutException("データベースへの接続がタイムアウトしました。");
             }
             catch (Exception ex)
             {
+                Debug.WriteLine($"データベース接続テストエラー: {ex.Message}");
                 var message = string.Format(MessageConstants.Database.ConnectionFailed, ex.Message);
-
                 MessageBox.Show(message, MessageConstants.DialogTitle.DatabaseConnectionError, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 throw;
             }

@@ -12,14 +12,21 @@ namespace CustomerManager.WinForms.Presenters
     /// </summary>
     public class CustomerListPresenter : IDisposable
     {
-        private readonly ICustomerListView _view;
+        private ICustomerListView? _view;
         private readonly ICustomerRepository _repository;
         private bool _disposed = false;
 
-        public CustomerListPresenter(ICustomerListView view, ICustomerRepository repository)
+        public CustomerListPresenter(ICustomerRepository repository)
+        {
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        }
+
+        /// <summary>
+        /// ViewをPresenterにアタッチ
+        /// </summary>
+        public void AttachView(ICustomerListView view)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
-            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
 
             // Viewのイベントを購読
             _view.LoadRequested += OnLoadRequested;
@@ -35,6 +42,9 @@ namespace CustomerManager.WinForms.Presenters
         /// </summary>
         public async Task InitializeAsync()
         {
+            if (_view == null)
+                throw new InvalidOperationException("View is not attached. Call AttachView first.");
+
             Debug.WriteLine("Presenter: LoadCustomersAsync開始");
             await LoadCustomersAsync();
             Debug.WriteLine("Presenter: LoadCustomersAsync完了");
@@ -53,6 +63,7 @@ namespace CustomerManager.WinForms.Presenters
         /// </summary>
         private void OnAddNewRequested(object? sender, EventArgs e)
         {
+            if (_view == null) return;
             ShowCustomerEditDialog(null);
         }
 
@@ -61,6 +72,8 @@ namespace CustomerManager.WinForms.Presenters
         /// </summary>
         private void OnEditRequested(object? sender, EventArgs e)
         {
+            if (_view == null) return;
+            
             var selectedCustomer = _view.GetSelectedCustomer();
             if (selectedCustomer == null)
             {
@@ -76,6 +89,8 @@ namespace CustomerManager.WinForms.Presenters
         /// </summary>
         private async void OnDeleteRequested(object? sender, EventArgs e)
         {
+            if (_view == null) return;
+            
             var selectedCustomer = _view.GetSelectedCustomer();
             if (selectedCustomer == null)
             {
@@ -105,6 +120,8 @@ namespace CustomerManager.WinForms.Presenters
         /// </summary>
         private async Task LoadCustomersAsync()
         {
+            if (_view == null) return;
+            
             try
             {
                 Debug.WriteLine("Presenter: SetLoading(true)");
@@ -135,6 +152,8 @@ namespace CustomerManager.WinForms.Presenters
         /// <param name="customerId">削除する顧客のID</param>
         private async Task DeleteCustomerAsync(int customerId)
         {
+            if (_view == null) return;
+            
             try
             {
                 _view.SetLoading(true);
