@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # MySQLデータベース
+  mysql:
+    image: mysql:8.0
+    container_name: customer_management_db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: customer_management
+      MYSQL_USER: customer_user
+      MYSQL_PASSWORD: customer_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database-setup.sql:/docker-entrypoint-initdb.d/01-setup.sql
+    networks:
+      - customer_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Windows Formsアプリケーション（VNCアクセス用）
+  # 注意: このアプローチは実験的です
+  customer_app:
+    build:
+      context: .
+      dockerfile: Dockerfile.linux-gui
+    container_name: customer_management_app
+    environment:
+      - DISPLAY=:1
+      - VNC_PASSWORD=vncpassword
+      - CONNECTION_STRING=Server=mysql;Database=customer_management;User=customer_user;Password=customer_password;
+    ports:
+      - "5901:5901"  # VNC
+      - "6080:6080"  # noVNC (Web VNC)
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    networks:
+      - customer_network
+    stdin_open: true
+    tty: true
+
+  # noVNC Webアクセス (オプション)
+  novnc:
+    image: theasp/novnc:latest
+    container_name: customer_management_novnc
+    ports:
+      - "8080:8080"
+    environment:
+      - VNC_SERVER=customer_app:5901
+    depends_on:
+      - customer_app
+    networks:
+      - customer_network
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  customer_network:
+    driver: bridge

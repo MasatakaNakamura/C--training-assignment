@@ -1,0 +1,23 @@
+# 開発用データベース環境のみを提供するDockerfile
+# アプリケーションはホストマシンで実行
+
+FROM mysql:8.0
+
+# 環境変数
+ENV MYSQL_ROOT_PASSWORD=rootpassword
+ENV MYSQL_DATABASE=customer_management
+ENV MYSQL_USER=customer_user
+ENV MYSQL_PASSWORD=customer_password
+
+# カスタム設定
+COPY docker-configs/mysql.cnf /etc/mysql/conf.d/custom.cnf
+
+# 初期化スクリプト
+COPY database-setup.sql /docker-entrypoint-initdb.d/01-setup.sql
+
+# ポート公開
+EXPOSE 3306
+
+# ヘルスチェック
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD mysqladmin ping -h localhost -u root -p$MYSQL_ROOT_PASSWORD || exit 1
