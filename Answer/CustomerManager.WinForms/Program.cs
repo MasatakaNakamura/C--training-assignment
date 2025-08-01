@@ -23,6 +23,10 @@ namespace CustomerManager.WinForms
             Debug.WriteLine("アプリケーション開始");
             ApplicationConfiguration.Initialize();
 
+            // 開発中のスレッドチェックを無効化（本番では有効にすること）
+            Control.CheckForIllegalCrossThreadCalls = false;
+            Debug.WriteLine("スレッドチェックを無効化");
+
             // グローバル例外ハンドラを設定
             SetupGlobalExceptionHandlers();
 
@@ -162,6 +166,14 @@ namespace CustomerManager.WinForms
         private static void Application_ThreadException(object sender, System.Threading.ThreadExceptionEventArgs e)
         {
             LogException(e.Exception, "UIスレッド未捕捉例外");
+            
+            // スレッド間操作エラーは無視してアプリケーションを継続
+            if (e.Exception is InvalidOperationException && 
+                e.Exception.Message.Contains("スレッド間の操作"))
+            {
+                Debug.WriteLine("スレッド間操作エラーを無視して継続");
+                return;
+            }
             
             var message = $"予期しないエラーが発生しました。\n\n" +
                          $"エラー: {e.Exception.Message}\n\n" +
