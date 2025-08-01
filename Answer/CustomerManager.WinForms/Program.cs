@@ -77,9 +77,25 @@ namespace CustomerManager.WinForms
                 using var presenter = new CustomerListPresenter(mainForm, customerRepository);
                 Debug.WriteLine("フォーム作成完了");
 
-                // アプリケーション実行
+                // アプリケーション実行（UIスレッドで同期実行）
                 Debug.WriteLine("Presenter初期化開始");
-                await presenter.InitializeAsync();
+                
+                // フォーム表示後にPresenterを初期化
+                mainForm.Load += async (sender, e) =>
+                {
+                    try
+                    {
+                        Debug.WriteLine("UIスレッドでPresenter初期化開始");
+                        await presenter.InitializeAsync();
+                        Debug.WriteLine("UIスレッドでPresenter初期化完了");
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Presenter初期化エラー: {ex.Message}");
+                        MessageBox.Show($"データ読み込みエラー: {ex.Message}", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                };
+                
                 Debug.WriteLine("アプリケーション実行開始");
                 Application.Run(mainForm);
                 Debug.WriteLine("アプリケーション終了");
