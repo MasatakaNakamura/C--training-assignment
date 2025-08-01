@@ -27,7 +27,6 @@ namespace CustomerManager.Data.DataAccess
             Debug.WriteLine("Repository: ダミーデータを返却（一時的対応）");
             
             // 一時的にダミーデータを返却してフォーム表示を確認
-            await Task.Delay(100); // 非同期処理をシミュレート
             
             var dummyData = new List<Customer>
             {
@@ -64,7 +63,7 @@ namespace CustomerManager.Data.DataAccess
             };
             
             Debug.WriteLine($"Repository: ダミーデータ返却完了 - {dummyData.Count}件");
-            return dummyData;
+            return await Task.FromResult(dummyData);
 
             // 実際のデータベース接続コードは後で修正
             /*
