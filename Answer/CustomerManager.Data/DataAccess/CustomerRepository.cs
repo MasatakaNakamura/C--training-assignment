@@ -24,6 +24,50 @@ namespace CustomerManager.Data.DataAccess
         /// <returns>顧客リスト</returns>
         public async Task<IEnumerable<Customer>> GetAllAsync()
         {
+            Debug.WriteLine("Repository: ダミーデータを返却（一時的対応）");
+            
+            // 一時的にダミーデータを返却してフォーム表示を確認
+            await Task.Delay(100); // 非同期処理をシミュレート
+            
+            var dummyData = new List<Customer>
+            {
+                new Customer 
+                { 
+                    Id = 1, 
+                    Name = "田中太郎", 
+                    Kana = "タナカタロウ", 
+                    PhoneNumber = "03-1234-5678", 
+                    Email = "tanaka@example.com",
+                    CreatedAt = DateTime.Now.AddDays(-10),
+                    UpdatedAt = DateTime.Now.AddDays(-1)
+                },
+                new Customer 
+                { 
+                    Id = 2, 
+                    Name = "佐藤花子", 
+                    Kana = "サトウハナコ", 
+                    PhoneNumber = "090-1234-5678", 
+                    Email = "sato@example.com",
+                    CreatedAt = DateTime.Now.AddDays(-5),
+                    UpdatedAt = DateTime.Now
+                },
+                new Customer 
+                { 
+                    Id = 3, 
+                    Name = "鈴木次郎", 
+                    Kana = "スズキジロウ", 
+                    PhoneNumber = "080-9876-5432", 
+                    Email = "suzuki@example.com",
+                    CreatedAt = DateTime.Now.AddDays(-3),
+                    UpdatedAt = DateTime.Now
+                }
+            };
+            
+            Debug.WriteLine($"Repository: ダミーデータ返却完了 - {dummyData.Count}件");
+            return dummyData;
+
+            // 実際のデータベース接続コードは後で修正
+            /*
             try
             {
                 Debug.WriteLine("Repository: データベースクエリ開始");
@@ -56,6 +100,7 @@ namespace CustomerManager.Data.DataAccess
                 Debug.WriteLine($"Repository: データベースクエリエラー - {ex.Message}");
                 throw;
             }
+            */
         }
 
         /// <summary>
