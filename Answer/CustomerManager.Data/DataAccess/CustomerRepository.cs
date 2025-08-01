@@ -28,12 +28,20 @@ namespace CustomerManager.Data.DataAccess
             {
                 Debug.WriteLine("Repository: データベースクエリ開始");
                 
-                // タイムアウト付きでクエリ実行
-                using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                // 短いタイムアウトでテスト
+                using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(3));
                 
+                // まず接続テスト
+                Debug.WriteLine("Repository: データベース接続テスト開始");
+                await _context.Database.CanConnectAsync(cancellationTokenSource.Token);
+                Debug.WriteLine("Repository: データベース接続テスト完了");
+                
+                // クエリ実行
+                Debug.WriteLine("Repository: クエリ実行開始");
                 var result = await _context.Customers
                     .OrderBy(c => c.Id)
                     .ToListAsync(cancellationTokenSource.Token);
+                Debug.WriteLine("Repository: クエリ実行完了");
                 
                 Debug.WriteLine($"Repository: データベースクエリ完了 - {result.Count}件取得");
                 return result;
