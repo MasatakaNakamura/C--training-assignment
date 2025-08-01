@@ -33,14 +33,25 @@ namespace CustomerManager.WinForms.Views
         /// <param name="customers">表示する顧客リスト</param>
         public void ShowCustomers(IEnumerable<Customer> customers)
         {
-            if (InvokeRequired)
+            try
             {
-                Invoke(new Action<IEnumerable<Customer>>(ShowCustomers), customers);
-                return;
-            }
+                if (InvokeRequired)
+                {
+                    // より安全なInvoke処理
+                    BeginInvoke(new Action(() => ShowCustomers(customers)));
+                    return;
+                }
 
-            dataGridViewCustomers.DataSource = customers.ToList();
-            labelStatus.Text = string.Format(MessageConstants.Status.CustomerCount, customers.Count());
+                if (IsDisposed || Disposing) return;
+
+                dataGridViewCustomers.DataSource = customers.ToList();
+                labelStatus.Text = string.Format(MessageConstants.Status.CustomerCount, customers.Count());
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"ShowCustomers エラー: {ex.Message}");
+                // エラーが発生してもアプリケーションを継続
+            }
         }
 
         /// <summary>
@@ -108,23 +119,33 @@ namespace CustomerManager.WinForms.Views
         /// <param name="isLoading">ローディング中の場合true</param>
         public void SetLoading(bool isLoading)
         {
-            if (InvokeRequired)
+            try
             {
-                Invoke(new Action<bool>(SetLoading), isLoading);
-                return;
-            }
+                if (InvokeRequired)
+                {
+                    BeginInvoke(new Action(() => SetLoading(isLoading)));
+                    return;
+                }
 
-            progressBar.Visible = isLoading;
-            
-            // ボタンの有効/無効を切り替え
-            buttonAdd.Enabled = !isLoading;
-            buttonEdit.Enabled = !isLoading;
-            buttonDelete.Enabled = !isLoading;
-            buttonRefresh.Enabled = !isLoading;
-            
-            if (isLoading)
+                if (IsDisposed || Disposing) return;
+
+                progressBar.Visible = isLoading;
+                
+                // ボタンの有効/無効を切り替え
+                buttonAdd.Enabled = !isLoading;
+                buttonEdit.Enabled = !isLoading;
+                buttonDelete.Enabled = !isLoading;
+                buttonRefresh.Enabled = !isLoading;
+                
+                if (isLoading)
+                {
+                    labelStatus.Text = MessageConstants.Status.Loading;
+                }
+            }
+            catch (Exception ex)
             {
-                labelStatus.Text = MessageConstants.Status.Loading;
+                System.Diagnostics.Debug.WriteLine($"SetLoading エラー: {ex.Message}");
+                // エラーが発生してもアプリケーションを継続
             }
         }
 
