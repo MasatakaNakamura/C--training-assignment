@@ -29,7 +29,6 @@
   <ItemGroup>
     <ProjectReference Include="..\CustomerManager.Core\CustomerManager.Core.csproj" />
     <ProjectReference Include="..\CustomerManager.Data\CustomerManager.Data.csproj" />
-    <ProjectReference Include="..\CustomerManager.WinForms\CustomerManager.WinForms.csproj" />
   </ItemGroup>
 
 </Project>
