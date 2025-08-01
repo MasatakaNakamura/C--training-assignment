@@ -163,7 +163,10 @@ namespace CustomerManager.Tests.Services
         [InlineData("@example.com")]
         [InlineData("test@")]
         [InlineData("test.example.com")]
+        [InlineData("test@@example.com")]
         [InlineData("test@.com")]
+        [InlineData("test@example")]
+        [InlineData("test@example.")]
         public void ValidateCustomer_InvalidEmailFormat_ShouldReturnInvalid(string invalidEmail)
         {
             // Arrange
