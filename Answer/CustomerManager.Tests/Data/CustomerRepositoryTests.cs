@@ -148,8 +148,10 @@ namespace CustomerManager.Tests.Data
             result.Should().NotBeNull();
             result.Id.Should().BeGreaterThan(0);
             result.Name.Should().Be("田中太郎");
-            result.CreatedAt.Should().BeCloseTo(DateTime.Now, TimeSpan.FromSeconds(1));
-            result.UpdatedAt.Should().BeCloseTo(DateTime.Now, TimeSpan.FromSeconds(1));
+            result.CreatedAt.Should().NotBeNull();
+            result.CreatedAt.Value.Should().BeCloseTo(DateTime.Now, TimeSpan.FromSeconds(1));
+            result.UpdatedAt.Should().NotBeNull();
+            result.UpdatedAt.Value.Should().BeCloseTo(DateTime.Now, TimeSpan.FromSeconds(1));
 
             // データベースに保存されていることを確認
             var savedCustomer = await _context.Customers.FindAsync(result.Id);
@@ -200,7 +202,8 @@ namespace CustomerManager.Tests.Data
             result.Name.Should().Be("田中太郎（更新）");
             result.Email.Should().Be("tanaka.updated@example.com");
             result.CreatedAt.Should().Be(originalCreatedAt); // 作成日時は変更されない
-            result.UpdatedAt.Should().BeAfter(originalUpdatedAt); // 更新日時は変更される
+            result.UpdatedAt.Should().NotBeNull();
+            result.UpdatedAt.Should().BeAfter(originalUpdatedAt!.Value); // 更新日時は変更される
 
             // データベースで更新されていることを確認
             var savedCustomer = await _context.Customers.FindAsync(customer.Id);
