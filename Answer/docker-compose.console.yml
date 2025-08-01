@@ -1,0 +1,51 @@
+# コンソール版顧客管理システム用docker-compose
+# 実用的なDocker環境（Windows Forms代替）
+
+version: '3.8'
+
+services:
+  # MySQLデータベース
+  mysql:
+    image: mysql:8.0
+    container_name: customer_db_console
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: customer_management
+      MYSQL_USER: customer_user
+      MYSQL_PASSWORD: customer_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_console_data:/var/lib/mysql
+      - ./database-setup.sql:/docker-entrypoint-initdb.d/01-setup.sql
+    networks:
+      - customer_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # コンソール版顧客管理アプリケーション
+  customer_console:
+    build:
+      context: .
+      dockerfile: Dockerfile.console
+    container_name: customer_console_app
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=mysql;Database=customer_management;User=customer_user;Password=customer_password;
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - customer_network
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+volumes:
+  mysql_console_data:
+    driver: local
+
+networks:
+  customer_network:
+    driver: bridge

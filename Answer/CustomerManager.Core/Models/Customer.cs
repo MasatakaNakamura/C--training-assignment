@@ -43,11 +43,11 @@ namespace CustomerManager.Core.Models
         /// <summary>
         /// 作成日時
         /// </summary>
-        public DateTime? CreatedAt { get; set; }
+        public DateTime? CreatedAt { get; set; } = DateTime.Now;
 
         /// <summary>
         /// 更新日時
         /// </summary>
-        public DateTime? UpdatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; } = DateTime.Now;
     }
 }

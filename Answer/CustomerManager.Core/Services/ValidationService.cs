@@ -46,6 +46,7 @@ namespace CustomerManager.Core.Services
 
             // カスタムバリデーション
             ValidatePhoneNumber(customer.PhoneNumber, result);
+            ValidateEmailFormat(customer.Email, result);
 
             result.IsValid = !result.Errors.Any();
             return result;
@@ -65,6 +66,26 @@ namespace CustomerManager.Core.Services
             if (!System.Text.RegularExpressions.Regex.IsMatch(phoneNumber, @"^[\d\-\(\)\s]+$"))
             {
                 result.Errors[FieldConstants.Customer.PhoneNumber] = MessageConstants.Validation.PhoneNumberFormat;
+            }
+        }
+
+        /// <summary>
+        /// メールアドレスの形式をより厳密にチェック
+        /// </summary>
+        /// <param name="email">メールアドレス</param>
+        /// <param name="result">バリデーション結果</param>
+        private void ValidateEmailFormat(string email, ValidationResult result)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return; // Data Annotationsで Required チェック済み
+
+            // より厳密なメールアドレス検証
+            // 基本的なメールアドレス形式をチェック
+            var emailPattern = @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$";
+            
+            if (!System.Text.RegularExpressions.Regex.IsMatch(email, emailPattern))
+            {
+                result.Errors[FieldConstants.Customer.Email] = "正しいメールアドレス形式で入力してください";
             }
         }
     }
