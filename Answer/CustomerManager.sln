@@ -8,6 +8,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CustomerManager.Core", "Cus
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CustomerManager.Data", "CustomerManager.Data\CustomerManager.Data.csproj", "{3D4E5F6G-7H8I-9J0K-1L2M-3N4O5P6Q7R8S}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CustomerManager.Tests", "CustomerManager.Tests\CustomerManager.Tests.csproj", "{4E5F6G7H-8I9J-0K1L-2M3N-4O5P6Q7R8S9T}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,6 +28,10 @@ Global
 		{3D4E5F6G-7H8I-9J0K-1L2M-3N4O5P6Q7R8S}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3D4E5F6G-7H8I-9J0K-1L2M-3N4O5P6Q7R8S}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3D4E5F6G-7H8I-9J0K-1L2M-3N4O5P6Q7R8S}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4E5F6G7H-8I9J-0K1L-2M3N-4O5P6Q7R8S9T}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4E5F6G7H-8I9J-0K1L-2M3N-4O5P6Q7R8S9T}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4E5F6G7H-8I9J-0K1L-2M3N-4O5P6Q7R8S9T}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4E5F6G7H-8I9J-0K1L-2M3N-4O5P6Q7R8S9T}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
