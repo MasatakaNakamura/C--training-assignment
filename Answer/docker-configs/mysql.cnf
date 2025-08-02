@@ -1,0 +1,22 @@
+[mysqld]
+# 文字セット設定
+character-set-server=utf8mb4
+collation-server=utf8mb4_unicode_ci
+
+# 日本語対応
+default-time-zone='+09:00'
+
+# パフォーマンス設定
+innodb_buffer_pool_size=256M
+innodb_log_file_size=64M
+innodb_flush_log_at_trx_commit=2
+
+# 開発用設定（本番では無効にする）
+general_log=1
+general_log_file=/var/log/mysql/general.log
+
+[mysql]
+default-character-set=utf8mb4
+
+[client]
+default-character-set=utf8mb4

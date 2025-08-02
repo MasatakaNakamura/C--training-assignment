@@ -1,0 +1,53 @@
+# コンソール版顧客管理アプリケーション用Dockerfile
+# Windows Formsの代替として、コンソールベースのCRUDアプリケーションを提供
+
+FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+
+# 作業ディレクトリ
+WORKDIR /src
+
+# プロジェクトファイルをコピー
+COPY CustomerManager.sln ./
+COPY CustomerManager.Core/ ./CustomerManager.Core/
+COPY CustomerManager.Data/ ./CustomerManager.Data/
+
+# 新しいコンソールプロジェクトを作成
+RUN dotnet new console -n CustomerManager.Console -f net6.0
+COPY CustomerManager.Console/ ./CustomerManager.Console/ 2>/dev/null || true
+
+# プロジェクト参照を追加
+RUN cd CustomerManager.Console && \
+    dotnet add reference ../CustomerManager.Core/CustomerManager.Core.csproj && \
+    dotnet add reference ../CustomerManager.Data/CustomerManager.Data.csproj
+
+# NuGetパッケージを追加
+RUN cd CustomerManager.Console && \
+    dotnet add package Microsoft.EntityFrameworkCore && \
+    dotnet add package Pomelo.EntityFrameworkCore.MySql && \
+    dotnet add package Microsoft.Extensions.Configuration && \
+    dotnet add package Microsoft.Extensions.Configuration.Json && \
+    dotnet add package Microsoft.Extensions.Hosting
+
+# ビルド
+RUN dotnet restore CustomerManager.Console/CustomerManager.Console.csproj
+RUN dotnet build CustomerManager.Console/CustomerManager.Console.csproj -c Release
+
+# 公開
+RUN dotnet publish CustomerManager.Console/CustomerManager.Console.csproj -c Release -o /app/publish
+
+# ランタイムイメージ
+FROM mcr.microsoft.com/dotnet/runtime:6.0
+
+WORKDIR /app
+
+# 公開されたアプリケーションをコピー
+COPY --from=build /app/publish .
+
+# 設定ファイル
+COPY appsettings.docker.json ./appsettings.json
+
+# ポート（Web API機能がある場合）
+EXPOSE 8080
+
+# アプリケーション実行
+ENTRYPOINT ["dotnet", "CustomerManager.Console.dll"]

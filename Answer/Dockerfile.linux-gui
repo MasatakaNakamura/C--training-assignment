@@ -1,0 +1,75 @@
+# Linux GUI環境で.NET 6アプリケーションを動作させるDockerfile
+# 注意: Windows Formsは完全互換ではないため、コンソールアプリ化を推奨
+
+FROM ubuntu:22.04
+
+# 非対話モードでパッケージインストール
+ENV DEBIAN_FRONTEND=noninteractive
+ENV DISPLAY=:1
+
+# 必要なパッケージをインストール
+RUN apt-get update && apt-get install -y \
+    # 基本ツール
+    wget \
+    curl \
+    apt-transport-https \
+    software-properties-common \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    # GUI環境
+    xvfb \
+    x11vnc \
+    fluxbox \
+    xterm \
+    # フォント
+    fonts-liberation \
+    fonts-dejavu-core \
+    # その他
+    unzip \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Microsoft公式リポジトリを追加
+RUN wget https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb \
+    && dpkg -i packages-microsoft-prod.deb \
+    && rm packages-microsoft-prod.deb
+
+# .NET 6 SDKとランタイムをインストール
+RUN apt-get update && apt-get install -y \
+    dotnet-sdk-6.0 \
+    dotnet-runtime-6.0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# 作業ディレクトリ
+WORKDIR /app
+
+# プロジェクトファイルをコピー
+COPY CustomerManager.sln ./
+COPY CustomerManager.Core/ ./CustomerManager.Core/
+COPY CustomerManager.Data/ ./CustomerManager.Data/
+COPY CustomerManager.WinForms/ ./CustomerManager.WinForms/
+
+# 設定ファイルをDocker用に置換
+COPY appsettings.docker.json ./CustomerManager.WinForms/appsettings.json
+
+# .NETプロジェクトをビルド
+RUN dotnet restore CustomerManager.sln
+RUN dotnet build CustomerManager.sln -c Release
+RUN dotnet publish CustomerManager.WinForms/CustomerManager.WinForms.csproj \
+    -c Release \
+    -o /app/publish \
+    --no-restore
+
+# VNC設定スクリプト
+COPY docker-scripts/start-vnc.sh /start-vnc.sh
+RUN chmod +x /start-vnc.sh
+
+# ポート公開
+EXPOSE 5901 6080
+
+# 注意: Windows Formsは本来Linux非対応のため、実際の実行は困難
+# 代替案: Web版への移植またはコンソールアプリケーション化を推奨
+
+# VNCサーバー起動（GUI環境の提供のみ）
+CMD ["/start-vnc.sh"]
