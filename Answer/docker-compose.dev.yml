@@ -1,0 +1,33 @@
+# 開発用docker-compose（データベースのみ）
+# アプリケーションはローカルで実行
+
+version: '3.8'
+
+services:
+  # 開発用MySQL
+  mysql-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.database-only
+    container_name: customer_db_dev
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+      - ./logs/mysql:/var/log/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=customer_management
+      - MYSQL_USER=customer_user
+      - MYSQL_PASSWORD=customer_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  mysql_dev_data:
+    driver: local

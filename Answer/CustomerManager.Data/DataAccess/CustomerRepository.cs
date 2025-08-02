@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using CustomerManager.Core.Interfaces;
 using CustomerManager.Core.Models;
+using System.Diagnostics;
 
 namespace CustomerManager.Data.DataAccess
 {
@@ -11,10 +12,12 @@ namespace CustomerManager.Data.DataAccess
     public class CustomerRepository : ICustomerRepository
     {
         private readonly CustomerDbContext _context;
+        private readonly ILoggerService? _logger;
 
-        public CustomerRepository(CustomerDbContext context)
+        public CustomerRepository(CustomerDbContext context, ILoggerService? logger = null)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
+            _logger = logger;
         }
 
         /// <summary>
@@ -23,9 +26,35 @@ namespace CustomerManager.Data.DataAccess
         /// <returns>顧客リスト</returns>
         public async Task<IEnumerable<Customer>> GetAllAsync()
         {
-            return await _context.Customers
-                .OrderBy(c => c.Id)
-                .ToListAsync();
+            const string methodName = nameof(GetAllAsync);
+            _logger?.LogMethodStart(methodName);
+            
+            try
+            {
+                _logger?.LogDebug("データベースクエリ開始: 全顧客取得");
+                
+                // CancellationTokenSourceでタイムアウトを設定
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                
+                var result = await _context.Customers
+                    .OrderBy(c => c.Id)
+                    .ToListAsync(cts.Token)
+                    .ConfigureAwait(false); // UIスレッドのコンテキストを回避
+                
+                _logger?.LogDatabaseOperation("SELECT", "customers", result.Count);
+                _logger?.LogMethodEnd(methodName, $"{result.Count}件取得");
+                return result;
+            }
+            catch (OperationCanceledException ex)
+            {
+                _logger?.LogError(ex, "データベースクエリタイムアウト: {MethodName}", methodName);
+                throw new TimeoutException("データベースへの接続がタイムアウトしました。");
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "データベースクエリエラー: {MethodName}", methodName);
+                throw;
+            }
         }
 
         /// <summary>
@@ -36,7 +65,8 @@ namespace CustomerManager.Data.DataAccess
         public async Task<Customer?> GetByIdAsync(int id)
         {
             return await _context.Customers
-                .FirstOrDefaultAsync(c => c.Id == id);
+                .FirstOrDefaultAsync(c => c.Id == id)
+                .ConfigureAwait(false);
         }
 
         /// <summary>
@@ -49,9 +79,24 @@ namespace CustomerManager.Data.DataAccess
             if (customer == null)
                 throw new ArgumentNullException(nameof(customer));
 
-            _context.Customers.Add(customer);
-            await _context.SaveChangesAsync();
-            return customer;
+            const string methodName = nameof(AddAsync);
+            _logger?.LogMethodStart(methodName, customer.Name, customer.Email);
+            
+            try
+            {
+                _context.Customers.Add(customer);
+                await _context.SaveChangesAsync().ConfigureAwait(false);
+                
+                _logger?.LogDatabaseOperation("INSERT", "customers");
+                _logger?.LogInfo("顧客登録完了: ID={CustomerId}, Name={CustomerName}", customer.Id, customer.Name);
+                _logger?.LogMethodEnd(methodName, customer.Id);
+                return customer;
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "顧客登録エラー: {MethodName}, Name={CustomerName}", methodName, customer.Name);
+                throw;
+            }
         }
 
         /// <summary>
@@ -65,7 +110,7 @@ namespace CustomerManager.Data.DataAccess
                 throw new ArgumentNullException(nameof(customer));
 
             // 既存のエンティティを取得
-            var existingCustomer = await _context.Customers.FindAsync(customer.Id);
+            var existingCustomer = await _context.Customers.FindAsync(customer.Id).ConfigureAwait(false);
             if (existingCustomer == null)
                 throw new InvalidOperationException($"ID {customer.Id} の顧客が見つかりません。");
 
@@ -77,7 +122,7 @@ namespace CustomerManager.Data.DataAccess
             // CreatedAtは更新しない（作成日時は不変）
             // UpdatedAtは自動で設定される
 
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync().ConfigureAwait(false);
             return existingCustomer;
         }
 

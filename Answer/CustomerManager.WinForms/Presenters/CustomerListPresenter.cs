@@ -1,6 +1,7 @@
 using CustomerManager.Core.Interfaces;
 using CustomerManager.Core.Models;
 using CustomerManager.Core.Constants;
+using System.Diagnostics;
 
 namespace CustomerManager.WinForms.Presenters
 {
@@ -11,14 +12,24 @@ namespace CustomerManager.WinForms.Presenters
     /// </summary>
     public class CustomerListPresenter : IDisposable
     {
-        private readonly ICustomerListView _view;
+        private ICustomerListView? _view;
         private readonly ICustomerRepository _repository;
+        private readonly ILoggerService? _logger;
         private bool _disposed = false;
 
-        public CustomerListPresenter(ICustomerListView view, ICustomerRepository repository)
+        public CustomerListPresenter(ICustomerRepository repository, ILoggerService? logger = null)
+        {
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _logger = logger;
+        }
+
+        /// <summary>
+        /// ViewをPresenterにアタッチ
+        /// </summary>
+        public void AttachView(ICustomerListView view)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
-            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _logger?.LogInfo("CustomerListView アタッチ完了");
 
             // Viewのイベントを購読
             _view.LoadRequested += OnLoadRequested;
@@ -26,6 +37,8 @@ namespace CustomerManager.WinForms.Presenters
             _view.EditRequested += OnEditRequested;
             _view.DeleteRequested += OnDeleteRequested;
             _view.RefreshRequested += OnRefreshRequested;
+            
+            _logger?.LogDebug("CustomerListView イベント購読完了");
         }
 
         /// <summary>
@@ -34,7 +47,12 @@ namespace CustomerManager.WinForms.Presenters
         /// </summary>
         public async Task InitializeAsync()
         {
+            if (_view == null)
+                throw new InvalidOperationException("View is not attached. Call AttachView first.");
+
+            Debug.WriteLine("Presenter: LoadCustomersAsync開始");
             await LoadCustomersAsync();
+            Debug.WriteLine("Presenter: LoadCustomersAsync完了");
         }
 
         /// <summary>
@@ -50,6 +68,7 @@ namespace CustomerManager.WinForms.Presenters
         /// </summary>
         private void OnAddNewRequested(object? sender, EventArgs e)
         {
+            if (_view == null) return;
             ShowCustomerEditDialog(null);
         }
 
@@ -58,6 +77,8 @@ namespace CustomerManager.WinForms.Presenters
         /// </summary>
         private void OnEditRequested(object? sender, EventArgs e)
         {
+            if (_view == null) return;
+            
             var selectedCustomer = _view.GetSelectedCustomer();
             if (selectedCustomer == null)
             {
@@ -73,6 +94,8 @@ namespace CustomerManager.WinForms.Presenters
         /// </summary>
         private async void OnDeleteRequested(object? sender, EventArgs e)
         {
+            if (_view == null) return;
+            
             var selectedCustomer = _view.GetSelectedCustomer();
             if (selectedCustomer == null)
             {
@@ -102,20 +125,28 @@ namespace CustomerManager.WinForms.Presenters
         /// </summary>
         private async Task LoadCustomersAsync()
         {
+            if (_view == null) return;
+            
             try
             {
+                Debug.WriteLine("Presenter: SetLoading(true)");
                 _view.SetLoading(true);
+                Debug.WriteLine("Presenter: Repository.GetAllAsync開始");
                 var customers = await _repository.GetAllAsync();
+                Debug.WriteLine($"Presenter: Repository.GetAllAsync完了 - {customers.Count()}件取得");
                 _view.ShowCustomers(customers);
+                Debug.WriteLine("Presenter: ShowCustomers完了");
             }
             catch (Exception ex)
             {
+                Debug.WriteLine($"Presenter: エラー発生 - {ex.Message}");
                 _view.ShowError(MessageConstants.Database.LoadFailed);
                 // TODO: ログ出力
                 Console.WriteLine($"Error loading customers: {ex}");
             }
             finally
             {
+                Debug.WriteLine("Presenter: SetLoading(false)");
                 _view.SetLoading(false);
             }
         }
@@ -126,6 +157,8 @@ namespace CustomerManager.WinForms.Presenters
         /// <param name="customerId">削除する顧客のID</param>
         private async Task DeleteCustomerAsync(int customerId)
         {
+            if (_view == null) return;
+            
             try
             {
                 _view.SetLoading(true);
@@ -168,6 +201,7 @@ namespace CustomerManager.WinForms.Presenters
             {
                 editForm.IsEditMode = true;
                 editForm.SetCustomer(customer);
+                editPresenter.SetCustomer(customer); // Presenterにも顧客情報を設定
             }
             else
             {
